@@ -1,0 +1,2 @@
+-- ScrapSync schema is created automatically by SQLAlchemy for the MVP.
+-- See backend/app/database/models.py.

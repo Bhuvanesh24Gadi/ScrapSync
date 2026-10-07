@@ -1,0 +1,15 @@
+{
+  "businesses": [
+    "EcoWorks Demo",
+    "EcoThreads",
+    "ReFab Studio",
+    "GreenFiber Labs",
+    "PackLoop",
+    "BoardCycle"
+  ],
+  "focus_materials": [
+    "Textile",
+    "Cardboard"
+  ],
+  "demo_city": "Bengaluru"
+}
