@@ -41,6 +41,7 @@ import {
   getListings,
   createRequest,
   acceptRequest,
+  rejectRequest,
   seedDemo,
 } from "./services/api";
 
@@ -1270,6 +1271,9 @@ function Requests() {
   const [accepting, setAccepting] =
     useState(null);
 
+  const [rejecting, setRejecting] =
+    useState(null);
+
   const loadRequests = async () => {
     try {
       setLoading(true);
@@ -1304,6 +1308,22 @@ function Requests() {
       setAccepting(null);
     }
   };
+
+  
+const handleReject = async (requestId) => {
+  try {
+    setRejecting(requestId);
+
+    await rejectRequest(requestId);
+
+    await loadRequests();
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    setRejecting(null);
+  }
+};
+
 
   return (
     <Shell>
@@ -1374,26 +1394,37 @@ function Requests() {
                   ).toLocaleString("en-IN")}
                 </div>
 
-                {request.status ===
-                  "pending" && (
-                  <button
-                    className="btn primary"
-                    onClick={() =>
-                      handleAccept(
-                        request.id
-                      )
-                    }
-                    disabled={
-                      accepting ===
-                      request.id
-                    }
-                  >
-                    {accepting ===
-                    request.id
-                      ? "Accepting…"
-                      : "Accept exchange"}
-                  </button>
-                )}
+                
+{request.status === "pending" && (
+  <div className="request-actions">
+    <button
+      className="btn primary"
+      onClick={() => handleAccept(request.id)}
+      disabled={
+        accepting === request.id ||
+        rejecting === request.id
+      }
+    >
+      {accepting === request.id
+        ? "Accepting…"
+        : "Accept exchange"}
+    </button>
+
+    <button
+      className="btn reject-btn"
+      onClick={() => handleReject(request.id)}
+      disabled={
+        accepting === request.id ||
+        rejecting === request.id
+      }
+    >
+      {rejecting === request.id
+        ? "Rejecting…"
+        : "Reject"}
+    </button>
+  </div>
+)}
+
 
                 {request.status ===
                   "accepted" && (
@@ -1401,6 +1432,13 @@ function Requests() {
                     ✓ Accepted
                   </span>
                 )}
+                
+{request.status === "rejected" && (
+  <span className="request-rejected">
+    ✕ Rejected
+  </span>
+)}
+
               </div>
             ))}
           </div>

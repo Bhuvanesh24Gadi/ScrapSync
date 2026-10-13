@@ -51,3 +51,18 @@ class ExchangeRequest(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     listing = relationship("MaterialListing")
     buyer = relationship("Business")
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    business_id = Column(
+        Integer,
+        ForeignKey("businesses.id"),
+        nullable=False,
+    )
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    business = relationship("Business")

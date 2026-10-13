@@ -21,3 +21,35 @@
 .impact-hero{display:flex;align-items:center;gap:18px;padding:27px;border:1px solid #24524b;border-radius:18px;background:radial-gradient(circle at 70% 20%,#174b4255,transparent 40%),#0d242c}.impact-leaf{width:62px;height:62px;border-radius:18px;background:#16423b;color:var(--mint);display:grid;place-items:center}.impact-hero span,.impact-hero strong,.impact-hero p{display:block}.impact-hero span{font-size:9px;color:#6f8c8b;letter-spacing:.14em}.impact-hero strong{font:700 38px "Space Grotesk";color:var(--mint);margin:3px 0}.impact-hero p{font-size:10px;color:#789395;margin:0}.impact-side{margin-left:auto;border-left:1px solid #285047;padding-left:30px}.impact-side b{font:600 23px "Space Grotesk";display:block}.impact-side span{font-size:9px;color:#718d91}.methodology{margin-top:16px}.method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.method-grid>div{padding:17px;background:#0a1827;border:1px solid #1d3044;border-radius:12px}.method-grid b{color:var(--mint);font:700 12px "Space Grotesk"}.method-grid span{display:block;font-weight:600;font-size:12px;margin-top:12px}.method-grid p{font-size:9px;color:#71879a;line-height:1.6;margin:6px 0 0}.table-panel{padding:0;overflow:hidden}.table-panel .panel-head{padding:21px 22px;margin:0;border-bottom:1px solid #1e3246}.request-row{display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid #1a2b3e}.request-main{flex:1}.request-main b,.request-main span{display:block}.request-main b{font-size:11px}.request-main span{font-size:9px;color:#70869a;margin-top:4px}.status{font-size:8px;text-transform:uppercase;letter-spacing:.08em;padding:6px 8px;border-radius:8px}.status.pending{color:var(--amber);background:#3b2f12}.status.accepted{color:var(--mint);background:#12382f}.status.rejected{color:var(--danger);background:#3c1720}.request-value{font:600 12px "Space Grotesk";min-width:70px;text-align:right}.empty{padding:30px;text-align:center;color:#6d8295;display:flex;align-items:center;justify-content:center;gap:8px;font-size:10px}.empty.big{min-height:250px;flex-direction:column}.empty b{color:#a8b9c5}.loading{min-height:60vh;display:grid;place-items:center;color:#7f95a8;font-size:11px;gap:10px}.loading.compact{min-height:280px}.spinner{width:28px;height:28px;border:3px solid #1d3448;border-top-color:var(--mint);border-radius:50%;animation:spin .8s linear infinite}
 
 .reveal{animation:rise .45s ease both}@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:1000px){.sidebar{transform:translateX(-100%);transition:.25s}.sidebar-open{transform:none}.main{margin-left:0;width:100%}.mobile-menu{display:block}.topbar{padding:0 20px}.page{padding:28px 20px}.stats-grid{grid-template-columns:1fr 1fr}.hero-orbit{display:none}.two-col{grid-template-columns:1fr}.radar-layout{grid-template-columns:1fr}.listing-picker{display:flex;overflow:auto;gap:7px}.listing-picker .panel-head{display:none}.listing-pick{min-width:210px}.sidebar-tip{display:none}}@media(max-width:650px){.stats-grid,.stats-grid.three,.field-grid,.split,.method-grid{grid-template-columns:1fr}.hero{padding:28px}.hero h1{font-size:36px}.page-head{display:block}.radar-status{display:inline-flex;margin-top:12px}.match-meta{display:grid;grid-template-columns:1fr}.reasons{grid-template-columns:1fr}.match-foot{gap:10px}.match-foot .btn{flex:1}.demo-banner{align-items:flex-start;flex-wrap:wrap}.demo-banner .btn{width:100%}.topbar{height:62px}.page{padding-top:22px}.impact-hero{flex-wrap:wrap}.impact-side{margin-left:80px;border-left:0;padding-left:0}}
+
+/* ScrapSync red Reject button */
+button.btn.reject-btn {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border: 1px solid #dc2626 !important;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 600;
+  box-shadow: none;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+button.btn.reject-btn:hover:not(:disabled) {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+button.btn.reject-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+
+.request-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-left: 12px;
+}

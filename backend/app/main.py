@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.database import Base, engine, SessionLocal
 from app.database.seed import seed_if_empty
-from app.api import materials, matches, requests, businesses, impact
+from app.database import models
+from app.api import materials, matches, requests, businesses, impact, auth
 
 Base.metadata.create_all(bind=engine)
 with SessionLocal() as db:
@@ -16,6 +17,7 @@ app.include_router(matches.router, prefix="/api")
 app.include_router(requests.router, prefix="/api")
 app.include_router(businesses.router, prefix="/api")
 app.include_router(impact.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
 
 @app.get("/api/health")
 def health():
