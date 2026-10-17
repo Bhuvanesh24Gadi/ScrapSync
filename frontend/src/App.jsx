@@ -43,6 +43,9 @@ import {
   acceptRequest,
   rejectRequest,
   seedDemo,
+  login,
+  getAccessToken,
+  logout,
 } from "./services/api";
 
 
@@ -623,7 +626,6 @@ function CreateListing() {
     useState(null);
 
   const [form, setForm] = useState({
-    business_id: 1,
     material_type: "Textile",
     material_name: "Cotton fabric scraps",
     quantity: 42,
@@ -1667,40 +1669,320 @@ function Impact() {
     </Shell>
   );
 }
+// ============================================================
+// AUTH SCREEN
+// ============================================================
 
+function AuthScreen({ onAuthenticated }) {
+  const [mode, setMode] = useState("login");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const [form, setForm] = useState({
+    business_name: "",
+    industry: "Recycling",
+    location: "Bengaluru",
+    email: "",
+    password: "",
+  });
+
+  const update = (key, value) => {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  };
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      if (mode === "register") {
+        const response = await fetch(
+          `${
+            import.meta.env.VITE_API_URL ||
+            "http://localhost:8000/api"
+          }/auth/register`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(form),
+          }
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail || "Registration failed"
+          );
+        }
+      }
+
+      const result = await login(
+        form.email,
+        form.password
+      );
+
+      onAuthenticated(result.user);
+    } catch (err) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="brand auth-brand">
+          <div className="brand-mark">
+            <Zap size={19} fill="currentColor" />
+          </div>
+          <div>
+            <strong>
+              Scrap<span>Sync</span>
+            </strong>
+            <small>Resource intelligence</small>
+          </div>
+        </div>
+
+        <div className="auth-heading">
+          <div className="eyebrow">
+            BUSINESS RESOURCE NETWORK
+          </div>
+
+          <h1>
+            {mode === "login"
+              ? "Welcome back."
+              : "Join ScrapSync."}
+          </h1>
+
+          <p>
+            {mode === "login"
+              ? "Sign in to manage your resource exchange."
+              : "Create a business account to get started."}
+          </p>
+        </div>
+
+        <form onSubmit={submit} className="auth-form">
+          {mode === "register" && (
+            <>
+              <Field label="Business name">
+                <input
+                  value={form.business_name}
+                  onChange={(e) =>
+                    update("business_name", e.target.value)
+                  }
+                  minLength={2}
+                  maxLength={150}
+                  required
+                />
+              </Field>
+
+              <Field label="Industry">
+                <input
+                  value={form.industry}
+                  onChange={(e) =>
+                    update("industry", e.target.value)
+                  }
+                  required
+                />
+              </Field>
+
+              <Field label="Location">
+                <input
+                  value={form.location}
+                  onChange={(e) =>
+                    update("location", e.target.value)
+                  }
+                  required
+                />
+              </Field>
+            </>
+          )}
+
+          <Field label="Business email">
+            <input
+              type="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={(e) =>
+                update("email", e.target.value)
+              }
+              required
+            />
+          </Field>
+
+          <Field label="Password">
+            <input
+              type="password"
+              autoComplete={
+                mode === "login"
+                  ? "current-password"
+                  : "new-password"
+              }
+              minLength={8}
+              maxLength={128}
+              value={form.password}
+              onChange={(e) =>
+                update("password", e.target.value)
+              }
+              required
+            />
+          </Field>
+
+          {error && (
+            <div className="auth-error" role="alert">
+              {error}
+            </div>
+          )}
+
+          <button
+            className="btn primary auth-submit"
+            type="submit"
+            disabled={loading}
+          >
+            {loading
+              ? "Please wait…"
+              : mode === "login"
+                ? "Sign in"
+                : "Create account"}
+            {!loading && <ArrowRight size={16} />}
+          </button>
+        </form>
+
+        <div className="auth-switch">
+          {mode === "login"
+            ? "New to ScrapSync?"
+            : "Already have an account?"}
+
+          <button
+            type="button"
+            onClick={() => {
+              setMode(
+                mode === "login" ? "register" : "login"
+              );
+              setError("");
+            }}
+          >
+            {mode === "login"
+              ? "Create account"
+              : "Sign in"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ============================================================
 // APP ROUTER
 // ============================================================
 
 function App() {
+  const [user, setUser] = useState(() => {
+    const token = getAccessToken();
+
+    if (!token) return null;
+
+    try {
+      const payload = JSON.parse(
+        atob(token.split(".")[1])
+      );
+
+      if (
+        !payload.exp ||
+        payload.exp * 1000 <= Date.now()
+      ) {
+        logout();
+        return null;
+      }
+
+      return {
+        email: payload.email || "",
+        business_id: payload.business_id,
+        authenticated: true,
+      };
+    } catch {
+      logout();
+      return null;
+    }
+  });
+
+  const handleAuthenticated = (authenticatedUser) => {
+    setUser(
+      authenticatedUser || {
+        authenticated: true,
+      }
+    );
+  };
+
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+  };
+
+  if (!user) {
+    return (
+      <AuthScreen
+        onAuthenticated={handleAuthenticated}
+      />
+    );
+  }
+
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={<Overview />}
-      />
+    <>
+      <div className="auth-session-bar">
+        <span>
+          Signed in
+          {user.email ? ` as ${user.email}` : ""}
+        </span>
 
-      <Route
-        path="/listings/new"
-        element={<CreateListing />}
-      />
+        <button
+          type="button"
+          onClick={handleLogout}
+        >
+          Log out
+        </button>
+      </div>
 
-      <Route
-        path="/radar"
-        element={<Radar />}
-      />
+      <Routes>
+        <Route
+          path="/"
+          element={<Overview />}
+        />
 
-      <Route
-        path="/requests"
-        element={<Requests />}
-      />
+        <Route
+          path="/listings/new"
+          element={<CreateListing />}
+        />
 
-      <Route
-        path="/impact"
-        element={<Impact />}
-      />
-    </Routes>
+        <Route
+          path="/radar"
+          element={<Radar />}
+        />
+
+        <Route
+          path="/requests"
+          element={<Requests />}
+        />
+
+        <Route
+          path="/impact"
+          element={<Impact />}
+        />
+
+        <Route
+          path="*"
+          element={<Overview />}
+        />
+      </Routes>
+    </>
   );
 }
 

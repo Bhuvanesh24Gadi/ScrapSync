@@ -1,4 +1,3 @@
-
 QUALITY = {
     "Grade A": 100,
     "Grade B": 85,
@@ -27,7 +26,12 @@ def compatibility(listing, requirement, buyer):
     min_qty = float(requirement.min_quantity)
     max_qty = float(requirement.max_quantity)
 
-    if min_qty < 0 or max_qty <= 0 or min_qty > max_qty or quantity <= 0:
+    if (
+        min_qty < 0
+        or max_qty <= 0
+        or min_qty > max_qty
+        or quantity <= 0
+    ):
         return None
 
     if min_qty <= quantity <= max_qty:
@@ -35,9 +39,11 @@ def compatibility(listing, requirement, buyer):
         half_range = max((max_qty - min_qty) / 2, 1)
         distance = abs(quantity - midpoint)
         quantity_score = 100 - 20 * (distance / half_range)
+
     elif quantity < min_qty:
         gap_ratio = (min_qty - quantity) / max(min_qty, 1)
         quantity_score = max(0, 75 - 75 * gap_ratio)
+
     else:
         excess_ratio = (quantity - max_qty) / max(max_qty, 1)
         quantity_score = max(0, 75 - 75 * excess_ratio)
@@ -64,20 +70,22 @@ def compatibility(listing, requirement, buyer):
     if price < 0 or max_price <= 0:
         return None
 
+    # Reject a match if the supplier exceeds the buyer's price limit.
+    if price > max_price:
+        return None
+
     price_ratio = price / max_price
 
     if price_ratio <= 0.50:
         price_score = 100
     elif price_ratio <= 0.75:
-        price_score = 95 - (price_ratio - 0.50) / 0.25 * 10
-    elif price_ratio <= 1.00:
-        price_score = 85 - (price_ratio - 0.75) / 0.25 * 20
-    elif price_ratio <= 1.25:
-        price_score = 65 - (price_ratio - 1.00) / 0.25 * 20
-    elif price_ratio <= 1.50:
-        price_score = 45 - (price_ratio - 1.25) / 0.25 * 25
+        price_score = (
+            95 - (price_ratio - 0.50) / 0.25 * 10
+        )
     else:
-        return None
+        price_score = (
+            85 - (price_ratio - 0.75) / 0.25 * 20
+        )
 
     price_score = max(0, min(100, price_score))
 
@@ -139,16 +147,10 @@ def compatibility(listing, requirement, buyer):
             "the required grade"
         )
 
-    if price_ratio <= 1:
-        reasons.append(
-            f"Price ₹{price:g}/unit is within the buyer's "
-            f"limit of ₹{max_price:g}/unit"
-        )
-    else:
-        reasons.append(
-            f"Price ₹{price:g}/unit exceeds the buyer's "
-            f"limit of ₹{max_price:g}/unit"
-        )
+    reasons.append(
+        f"Price ₹{price:g}/unit is within the buyer's "
+        f"limit of ₹{max_price:g}/unit"
+    )
 
     if location_score == 100:
         reasons.append(
@@ -160,10 +162,11 @@ def compatibility(listing, requirement, buyer):
             "Location differs from the buyer's preferred location"
         )
 
-    # 9. Potential value, not a confirmed transaction value
-    potential_value = round(
-        min(quantity, max_qty) * price
-    )
+    # 9. Potential value estimate, not a confirmed transaction value.
+    # Partial quantities may be exchanged; actual stock reservation
+    # must be enforced by the request workflow.
+    potential_quantity = min(quantity, max_qty)
+    potential_value = round(potential_quantity * price, 2)
 
     return {
         "score": score,
