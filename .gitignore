@@ -132,3 +132,6 @@ reports/
 
 # Temporary exports
 exports/
+
+# Local ScrapSync backup
+scrapsync-backup/
