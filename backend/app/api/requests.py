@@ -64,6 +64,7 @@ def get_requests(
             "material_name": r.listing.material_name,
             "quantity": r.quantity,
             "status": r.status,
+            "can_manage": r.listing.business_id == business_id,
             "value": round(
                 r.quantity * r.listing.price_per_unit, 2
             ),

@@ -625,6 +625,15 @@ function CreateListing() {
   const [done, setDone] =
     useState(null);
 
+  const [voiceLanguage, setVoiceLanguage] =
+    useState("hi-IN");
+
+  const [isListening, setIsListening] =
+    useState(false);
+
+  const [voiceMessage, setVoiceMessage] =
+    useState("");
+
   const [form, setForm] = useState({
     material_type: "Textile",
     material_name: "Cotton fabric scraps",
@@ -640,6 +649,69 @@ function CreateListing() {
       ...current,
       [key]: value,
     }));
+  };
+
+  const startVoiceInput = () => {
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceMessage(
+        "Voice input is not supported in this browser. Please use Chrome or type the material name."
+      );
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = voiceLanguage;
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setVoiceMessage("Listening… speak the material name.");
+      };
+
+      recognition.onresult = (event) => {
+        const spokenText =
+          event.results?.[0]?.[0]?.transcript?.trim();
+
+        if (spokenText) {
+          update("material_name", spokenText);
+          setVoiceMessage(`Captured: ${spokenText}`);
+        } else {
+          setVoiceMessage("I could not recognize that. Please try again.");
+        }
+      };
+
+      recognition.onerror = (event) => {
+        const messages = {
+          "not-allowed": "Microphone permission was denied. Allow microphone access or type the material name.",
+          "service-not-allowed": "Speech recognition service is unavailable. Please type the material name.",
+          "no-speech": "No speech detected. Tap the microphone and try again.",
+          "audio-capture": "No microphone was found. Please check your microphone.",
+          network: "Speech recognition needs a network connection in this browser. Please try again online or type the material name.",
+        };
+        setVoiceMessage(
+          messages[event.error] ||
+          "Voice input could not start. Please type the material name."
+        );
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (error) {
+      setIsListening(false);
+      setVoiceMessage(
+        "Could not start voice input. Please check microphone permission or type the material name."
+      );
+    }
   };
 
   const submit = async (event) => {
@@ -702,16 +774,64 @@ function CreateListing() {
 
           <div className="field-grid">
             <Field label="Material name">
-              <input
-                value={form.material_name}
-                onChange={(event) =>
-                  update(
-                    "material_name",
-                    event.target.value
-                  )
-                }
-                required
-              />
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "8px",
+                  alignItems: "stretch",
+                }}
+              >
+                <input
+                  style={{ flex: "1 1 180px", minWidth: 0 }}
+                  value={form.material_name}
+                  onChange={(event) =>
+                    update(
+                      "material_name",
+                      event.target.value
+                    )
+                  }
+                  required
+                />
+
+                <select
+                  aria-label="Voice input language"
+                  value={voiceLanguage}
+                  onChange={(event) =>
+                    setVoiceLanguage(event.target.value)
+                  }
+                  style={{ flex: "0 1 130px", minWidth: "110px" }}
+                >
+                  <option value="hi-IN">हिन्दी</option>
+                  <option value="kn-IN">ಕನ್ನಡ</option>
+                  <option value="te-IN">తెలుగు</option>
+                </select>
+
+                <button
+                  type="button"
+                  className={`btn ${isListening ? "success" : "ghost"}`}
+                  onClick={startVoiceInput}
+                  disabled={isListening}
+                  aria-label="Start voice input"
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  {isListening ? "Listening…" : "🎙 Speak"}
+                </button>
+              </div>
+
+              <small
+                role="status"
+                aria-live="polite"
+                style={{
+                  display: "block",
+                  marginTop: "7px",
+                  color: "var(--muted, #94a3b8)",
+                  lineHeight: 1.45,
+                }}
+              >
+                {voiceMessage ||
+                  "Choose Hindi, Kannada, or Telugu, then tap Speak. You can also type manually."}
+              </small>
             </Field>
 
             <Field label="Category">
@@ -1397,7 +1517,7 @@ const handleReject = async (requestId) => {
                 </div>
 
                 
-{request.status === "pending" && (
+{request.status === "pending" && request.can_manage &&(
   <div className="request-actions">
     <button
       className="btn primary"
