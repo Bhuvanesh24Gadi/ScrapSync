@@ -468,3 +468,79 @@ button.btn.reject-btn:disabled {
     justify-content: flex-start;
   }
 }
+
+
+/* Voice listing controls and transcript: responsive on desktop and mobile */
+.voice-controls {
+  width: 100%;
+  min-width: 0;
+}
+
+.voice-controls input {
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.voice-controls select {
+  flex: 0 1 130px;
+  min-width: 110px;
+  max-width: 100%;
+}
+
+.voice-controls button {
+  flex: 0 0 auto;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.voice-transcript {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.voice-transcript-text {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  color: var(--soft, #c5d3df);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 650px) {
+  .voice-controls {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+    gap: 8px;
+  }
+
+  .voice-controls input {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .voice-controls select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .voice-controls button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .voice-transcript {
+    padding: 9px 10px !important;
+  }
+
+  .voice-transcript-text {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+}

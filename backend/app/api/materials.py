@@ -139,3 +139,6 @@ def update_material(
     db.refresh(material)
 
     return material_response(material)
+
+
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiYnVzaW5lc3NfaWQiOjEsImlhdCI6MTc5MzYwNTA4NSwiZXhwIjoxNzkzNjA4Njg1fQ.nqikvCfv3_LPdxzJN4b7W5sfjXbT03Fr_a-7XAN67qU"

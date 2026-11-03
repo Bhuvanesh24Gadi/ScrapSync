@@ -613,6 +613,90 @@ function Empty({ text }) {
 
 
 // ============================================================
+// VOICE-TO-FORM EXTRACTION
+// ============================================================
+
+function extractVoiceListing(transcript) {
+  const text = String(transcript || "").trim();
+  const lower = text.toLowerCase();
+  const updates = {};
+
+  // Material/category vocabulary in English, Hindi, Kannada and Telugu.
+  const materialTerms = [
+    { terms: ["corrugated cardboard", "cardboard", "ಕಾರ್ಡ್‌ಬೋರ್ಡ್", "ಕಾರ್ಡ್ಬೋರ್ಡ್", "गत्ता", "कार्डबोर्ड", "కార్డ్బోర్డ్", "అట్ట"], type: "Cardboard", name: "Corrugated Cardboard" },
+    { terms: ["cotton fabric", "fabric scraps", "textile", "ಬಟ್ಟೆ", "ಜವಳಿ", "कपड़ा", "कपड़े", "वस्त्र", "బట్ట", "వస్త్రం"], type: "Textile", name: "Cotton fabric scraps" },
+    { terms: ["paper", "ಕಾಗದ", "कागज", "కాగితం"], type: "Paper", name: "Waste paper" },
+    { terms: ["wood", "timber", "ಮರ", "ಮರದ", "लकड़ी", "लकड़ी", "చెక్క", "కలప"], type: "Wood", name: "Wood offcuts" },
+  ];
+
+  for (const item of materialTerms) {
+    const found = item.terms.find((term) => lower.includes(term.toLowerCase()));
+    if (found) {
+      updates.material_type = item.type;
+      updates.material_name = item.name;
+      break;
+    }
+  }
+
+  // Quantity: speech recognition commonly returns digits even for Indian languages.
+  const quantityMatch = text.match(/(?:^|\D)(\d+(?:[.,]\d+)?)\s*(?:kg|kgs|kilograms?|ಕಿಲೋ(?:ಗ್ರಾಂ)?|ಕೇಜಿ|किलो(?:ग्राम)?|किग्रा|కిలో(?:గ్రాములు)?|కేజీ)/i);
+  if (quantityMatch) updates.quantity = Number(quantityMatch[1].replace(",", "."));
+
+  // Grade A/B/C in English and the common spoken-script forms
+  // returned by Hindi, Kannada and Telugu speech recognition.
+  const gradeMatch = text.match(
+    /(?:grade|ಗ್ರೇಡ್|ग्रेड|గ్రేడ్)\s*[-:]?\s*(a|b|c|ए|ऐ|बी|बि|ब|सी|सि|स|ಏ|ಎ|ಏಯ್|ಬೀ|ಬಿ|ಬ|ಸೀ|ಸಿ|ಸ|ఏ|ఎ|ఏయ్|బీ|బి|బ|సీ|సి|స)/iu
+  );
+
+  if (gradeMatch) {
+    const spokenGrade = gradeMatch[1].toLowerCase();
+    const gradeMap = {
+      a: "A", "ए": "A", "ऐ": "A", "ಏ": "A", "ಎ": "A",
+      "ಏಯ್": "A", "ఏ": "A", "ఎ": "A", "ఏయ్": "A",
+      b: "B", "बी": "B", "बि": "B", "ब": "B",
+      "ಬೀ": "B", "ಬಿ": "B", "ಬ": "B",
+      "బీ": "B", "బి": "B", "బ": "B",
+      c: "C", "सी": "C", "सि": "C", "स": "C",
+      "ಸೀ": "C", "ಸಿ": "C", "ಸ": "C",
+      "సీ": "C", "సి": "C", "స": "C",
+    };
+    updates.quality = `Grade ${gradeMap[spokenGrade]}`;
+  }
+
+  // Price: require a currency/unit cue so unrelated numbers are not mistaken for price.
+  const pricePatterns = [
+    /(?:₹|rs\.?\s*)(\d+(?:[.,]\d+)?)/i,
+    /(\d+(?:[.,]\d+)?)\s*(?:rupees?|ರೂಪಾಯಿ|ರೂಪಾಯಿಗೆ|रुपये?|रु\.?|రూపాయలు?|రూపాయలకు)/i,
+  ];
+  for (const pattern of pricePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      updates.price_per_unit = Number(match[1].replace(",", "."));
+      break;
+    }
+  }
+
+  // Recognize common demo cities; do not guess an unknown location.
+  const cities = [
+    { terms: ["bengaluru", "bangalore", "ಬೆಂಗಳೂರು", "ಬೆಂಗಳೂರುನಲ್ಲಿ", "बेंगलुरु", "बंगलौर", "బెంగళూరు"], value: "Bengaluru" },
+    { terms: ["mysuru", "mysore", "ಮೈಸೂರು", "मैसूर", "మైసూరు"], value: "Mysuru" },
+    { terms: ["chennai", "ಚೆನ್ನೈ", "चेन्नई", "చెన్నై"], value: "Chennai" },
+    { terms: ["hyderabad", "ಹೈದರಾಬಾದ್", "हैदराबाद", "హైదరాబాద్"], value: "Hyderabad" },
+    { terms: ["mumbai", "ಮುಂಬೈ", "मुंबई", "ముంబై"], value: "Mumbai" },
+    { terms: ["delhi", "ದೆಹಲಿ", "दिल्ली", "ఢిల్లీ"], value: "Delhi" },
+  ];
+  for (const city of cities) {
+    if (city.terms.some((term) => lower.includes(term.toLowerCase()))) {
+      updates.location = city.value;
+      break;
+    }
+  }
+
+  return updates;
+}
+
+
+// ============================================================
 // CREATE LISTING
 // ============================================================
 
@@ -632,6 +716,9 @@ function CreateListing() {
     useState(false);
 
   const [voiceMessage, setVoiceMessage] =
+    useState("");
+
+  const [voiceTranscript, setVoiceTranscript] =
     useState("");
 
   const [form, setForm] = useState({
@@ -658,7 +745,7 @@ function CreateListing() {
 
     if (!SpeechRecognition) {
       setVoiceMessage(
-        "Voice input is not supported in this browser. Please use Chrome or type the material name."
+        "Voice input is not supported in this browser. Please use Microsoft Edge or Chrome, or enter the details manually."
       );
       return;
     }
@@ -666,42 +753,94 @@ function CreateListing() {
     try {
       const recognition = new SpeechRecognition();
       recognition.lang = voiceLanguage;
-      recognition.continuous = false;
+      recognition.continuous = true;
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
+      // Stop automatically after 3 seconds without a new speech result.
+      let silenceTimer = null;
+
+      const clearSilenceTimer = () => {
+        if (silenceTimer !== null) {
+          window.clearTimeout(silenceTimer);
+          silenceTimer = null;
+        }
+      };
+
       recognition.onstart = () => {
         setIsListening(true);
-        setVoiceMessage("Listening… speak the material name.");
+        setVoiceTranscript("");
+        setVoiceMessage(
+          "Listening… describe the material, quantity, grade, price and city in one sentence."
+        );
       };
 
       recognition.onresult = (event) => {
-        const spokenText =
-          event.results?.[0]?.[0]?.transcript?.trim();
+        // With continuous recognition, collect every recognized segment.
+        const spokenText = Array.from(event.results || [])
+          .map((result) => result?.[0]?.transcript || "")
+          .join(" ")
+          .trim();
 
-        if (spokenText) {
-          update("material_name", spokenText);
-          setVoiceMessage(`Captured: ${spokenText}`);
+        if (!spokenText) {
+          return;
+        }
+
+        setVoiceTranscript(spokenText);
+
+        // Restart the 3-second silence countdown whenever speech is recognized.
+        clearSilenceTimer();
+        silenceTimer = window.setTimeout(() => {
+          clearSilenceTimer();
+          try {
+            recognition.stop();
+          } catch (error) {
+            // The browser may already have stopped recognition.
+          }
+        }, 3000);
+
+        const extracted = extractVoiceListing(spokenText);
+
+        if (Object.keys(extracted).length > 0) {
+          setForm((current) => ({ ...current, ...extracted }));
+          const labels = {
+            material_type: "category",
+            material_name: "material name",
+            quantity: "quantity",
+            quality: "quality",
+            price_per_unit: "price",
+            location: "location",
+          };
+          const updatedFields = Object.keys(extracted)
+            .map((key) => labels[key])
+            .join(", ");
+          setVoiceMessage(
+            `Filled ${updatedFields}. Please review every field before publishing. Any detail not recognized was left unchanged.`
+          );
         } else {
-          setVoiceMessage("I could not recognize that. Please try again.");
+          setVoiceMessage(
+            "Speech captured, but I could not confidently identify the form fields. Try mentioning material, quantity in kg, grade, price in rupees and city."
+          );
         }
       };
 
       recognition.onerror = (event) => {
+        clearSilenceTimer();
         const messages = {
-          "not-allowed": "Microphone permission was denied. Allow microphone access or type the material name.",
-          "service-not-allowed": "Speech recognition service is unavailable. Please type the material name.",
-          "no-speech": "No speech detected. Tap the microphone and try again.",
+          "not-allowed": "Microphone permission was denied. Allow microphone access or enter the details manually.",
+          "service-not-allowed": "Speech recognition service is unavailable. Please enter the details manually.",
+          "no-speech": "No speech detected. Tap Speak and try again.",
           "audio-capture": "No microphone was found. Please check your microphone.",
-          network: "Speech recognition needs a network connection in this browser. Please try again online or type the material name.",
+          network: "Speech recognition needs a network connection in this browser. Please try again online.",
         };
         setVoiceMessage(
           messages[event.error] ||
-          "Voice input could not start. Please type the material name."
+          "Voice input could not start. Please enter the details manually."
         );
       };
 
       recognition.onend = () => {
+        clearSilenceTimer();
         setIsListening(false);
       };
 
@@ -709,7 +848,7 @@ function CreateListing() {
     } catch (error) {
       setIsListening(false);
       setVoiceMessage(
-        "Could not start voice input. Please check microphone permission or type the material name."
+        "Could not start voice input. Please check microphone permission and try again."
       );
     }
   };
@@ -775,11 +914,14 @@ function CreateListing() {
           <div className="field-grid">
             <Field label="Material name">
               <div
+                className="voice-controls"
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
                   gap: "8px",
                   alignItems: "stretch",
+                  width: "100%",
+                  minWidth: 0,
                 }}
               >
                 <input
@@ -802,6 +944,7 @@ function CreateListing() {
                   }
                   style={{ flex: "0 1 130px", minWidth: "110px" }}
                 >
+                  <option value="en-IN">English</option>
                   <option value="hi-IN">हिन्दी</option>
                   <option value="kn-IN">ಕನ್ನಡ</option>
                   <option value="te-IN">తెలుగు</option>
@@ -830,8 +973,30 @@ function CreateListing() {
                 }}
               >
                 {voiceMessage ||
-                  "Choose Hindi, Kannada, or Telugu, then tap Speak. You can also type manually."}
+                  "Choose English, Hindi, Kannada, or Telugu. Tap Speak and describe all details in one sentence. You can also type manually."}
               </small>
+              {voiceTranscript && (
+                <div
+                  className="voice-transcript"
+                  style={{
+                    marginTop: "10px",
+                    padding: "10px 12px",
+                    borderRadius: "10px",
+                    background: "rgba(20, 184, 166, 0.08)",
+                    border: "1px solid rgba(20, 184, 166, 0.22)",
+                    lineHeight: 1.5,
+                    width: "100%",
+                    maxWidth: "100%",
+                    minWidth: 0,
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <b style={{ display: "block", marginBottom: "4px" }}>
+                    Voice transcript
+                  </b>
+                  <span className="voice-transcript-text">{voiceTranscript}</span>
+                </div>
+              )}
             </Field>
 
             <Field label="Category">
