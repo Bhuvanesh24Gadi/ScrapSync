@@ -2,9 +2,9 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ValidationError
 from pwdlib import PasswordHash
 from sqlalchemy.orm import Session
 
@@ -42,12 +42,14 @@ class LoginRequest(BaseModel):
 
 def create_access_token(user: User) -> str:
     now = datetime.now(timezone.utc)
+
     payload = {
         "sub": str(user.id),
         "business_id": user.business_id,
         "iat": now,
         "exp": now + timedelta(minutes=ACCESS_TOKEN_MINUTES),
     }
+
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -63,6 +65,7 @@ def register(
         .filter(User.email == email)
         .first()
     )
+
     if existing_user:
         raise HTTPException(
             status_code=409,
@@ -75,6 +78,7 @@ def register(
             industry=body.industry.strip(),
             location=body.location.strip(),
         )
+
         db.add(business)
         db.flush()
 
@@ -83,6 +87,7 @@ def register(
             password_hash=password_hash.hash(body.password),
             business_id=business.id,
         )
+
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -100,10 +105,30 @@ def register(
 
 
 @router.post("/login")
-def login(
-    body: LoginRequest,
+async def login(
+    request: Request,
     db: Session = Depends(get_db),
 ):
+    content_type = request.headers.get("content-type", "")
+
+    try:
+        if "application/json" in content_type:
+            credentials = await request.json()
+        else:
+            form = await request.form()
+            credentials = {
+                "email": form.get("email") or form.get("username"),
+                "password": form.get("password"),
+            }
+
+        body = LoginRequest.model_validate(credentials)
+
+    except (ValidationError, ValueError, TypeError):
+        raise HTTPException(
+            status_code=422,
+            detail="Please provide a valid email/username and password",
+        )
+
     email = str(body.email).strip().lower()
 
     user = (
@@ -113,7 +138,8 @@ def login(
     )
 
     if not user or not password_hash.verify(
-        body.password, user.password_hash
+        body.password,
+        user.password_hash,
     ):
         raise HTTPException(
             status_code=401,
