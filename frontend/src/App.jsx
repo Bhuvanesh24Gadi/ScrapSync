@@ -17,6 +17,8 @@ import {
   CircleDollarSign,
   Factory,
   Gauge,
+  Eye,
+  EyeOff,
   Leaf,
   LayoutDashboard,
   Menu,
@@ -1962,6 +1964,7 @@ function AuthScreen({ onAuthenticated }) {
   const [mode, setMode] = useState("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
     business_name: "",
@@ -2104,21 +2107,57 @@ function AuthScreen({ onAuthenticated }) {
           </Field>
 
           <Field label="Password">
-            <input
-              type="password"
-              autoComplete={
-                mode === "login"
-                  ? "current-password"
-                  : "new-password"
-              }
-              minLength={8}
-              maxLength={128}
-              value={form.password}
-              onChange={(e) =>
-                update("password", e.target.value)
-              }
-              required
-            />
+            <div
+              className="password-input-wrap"
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                width: "100%",
+              }}
+            >
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete={
+                  mode === "login"
+                    ? "current-password"
+                    : "new-password"
+                }
+                minLength={8}
+                maxLength={128}
+                value={form.password}
+                onChange={(e) =>
+                  update("password", e.target.value)
+                }
+                required
+                style={{ width: "100%", paddingRight: "46px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                title={showPassword ? "Hide password" : "Show password"}
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "30px",
+                  height: "30px",
+                  padding: 0,
+                  border: 0,
+                  background: "transparent",
+                  color: "var(--muted, #94a3b8)",
+                  cursor: "pointer",
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </Field>
 
           {error && (
